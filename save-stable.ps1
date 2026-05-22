@@ -63,4 +63,4 @@ Write-Host "   Tag     : $tagName" -ForegroundColor White
 Write-Host "   Live URL: https://ecoxchange-dpp.vercel.app" -ForegroundColor White
 Write-Host ""
 Write-Host "To restore this snapshot later, run:" -ForegroundColor DarkGray
-Write-Host "   .\restore-stable.ps1 -Tag $tagName" -ForegroundColor Yellow
+Write-Host ("   .\restore-stable.ps1 -Tag " + $tagName) -ForegroundColor Yellow
