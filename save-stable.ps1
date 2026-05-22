@@ -35,32 +35,28 @@ git tag -a $tagName -m "Stable snapshot: $tagName"
 git push origin $tagName 2>&1 | Out-Null
 Write-Host "✅ Git tag created: $tagName" -ForegroundColor Green
 
-# 4. Deploy to Vercel and capture URL
+# 4. Deploy to Netlify
 Write-Host ""
-Write-Host "🚀 Deploying to Vercel..." -ForegroundColor Cyan
-$deployOutput = vercel deploy --prod --yes 2>&1
-$deployUrl = ($deployOutput | Select-String "https://ecoxchange-.*\.vercel\.app").Matches.Value | Select-Object -First 1
+Write-Host "🚀 Deploying to Netlify..." -ForegroundColor Cyan
+netlify deploy --prod --json | Out-Null
+$liveUrl = "https://ecoxchange-dpp.netlify.app"
 
-# 5. Alias to ecoxchange-dpp.vercel.app
-if ($deployUrl) {
-    vercel alias set $deployUrl ecoxchange-dpp.vercel.app 2>&1 | Out-Null
-    Write-Host "✅ Deployed and aliased to: https://ecoxchange-dpp.vercel.app" -ForegroundColor Green
-}
-
-# 6. Save snapshot record
+# 5. Save snapshot record
 $record = @{
     tag       = $tagName
     timestamp = $timestamp
-    deployUrl = $deployUrl
-    liveUrl   = "https://ecoxchange-dpp.vercel.app"
+    liveUrl   = $liveUrl
 } | ConvertTo-Json
 
+if (!(Test-Path -Path ".snapshots")) {
+    New-Item -ItemType Directory -Path ".snapshots" | Out-Null
+}
 $record | Out-File -FilePath ".snapshots\$tagName.json" -Encoding UTF8 -Force
 
 Write-Host ""
 Write-Host "✅ Stable snapshot saved!" -ForegroundColor Green
 Write-Host "   Tag     : $tagName" -ForegroundColor White
-Write-Host "   Live URL: https://ecoxchange-dpp.vercel.app" -ForegroundColor White
+Write-Host "   Live URL: $liveUrl" -ForegroundColor White
 Write-Host ""
 Write-Host "To restore this snapshot later, run:" -ForegroundColor DarkGray
 Write-Host ("   .\restore-stable.ps1 -Tag " + $tagName) -ForegroundColor Yellow
