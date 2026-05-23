@@ -250,7 +250,7 @@ export default function DashboardPage() {
 function SellButton({ dppId }: { dppId: string }) {
   const [loading, setLoading] = useState(false);
   const CAMPUSKARTT_URL =
-    process.env.NEXT_PUBLIC_CAMPUSKARTT_URL ?? "https://campuskartt1.netlify.app";
+    process.env.NEXT_PUBLIC_CAMPUSKARTT_URL ?? "https://campuskartt-newacc.vercel.app";
 
   const handleSell = async () => {
     setLoading(true);

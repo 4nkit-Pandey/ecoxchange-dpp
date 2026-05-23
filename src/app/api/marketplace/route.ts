@@ -46,7 +46,7 @@ async function fetchCampusKarttListings() {
         createdAt:    row.created_at,
         source:       "CAMPUSKARTT",
         externalId:   String(row.id),
-        externalUrl:  `https://campuskartt1.netlify.app/app/listing.html?id=${row.id}`,
+        externalUrl:  `https://campuskartt-newacc.vercel.app/app/listing.html?id=${row.id}`,
         externalImage: row.photo_url ?? null,
         sellerLabel:  row.users?.full_name ?? "CampusKartt Seller",
         externalTrustScore: trustScore,

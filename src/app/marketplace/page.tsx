@@ -62,7 +62,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   ACADEMIC_EQUIPMENT: "Academic",
 };
 
-const CK_URL = "https://campuskartt1.netlify.app";
+const CK_URL = "https://campuskartt-newacc.vercel.app";
 
 // SSO Buy Now: gets a CampusKartt session then opens the listing directly
 async function buyOnCampusKartt(listingId: string) {
