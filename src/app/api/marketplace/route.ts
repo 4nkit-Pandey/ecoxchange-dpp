@@ -26,7 +26,7 @@ async function fetchCampusKarttListings() {
           Authorization: `Bearer ${CK_ANON}`,
           "Content-Type": "application/json",
         },
-        next: { revalidate: 60 }, // cache 60 s to avoid rate limits
+        next: { revalidate: 0 }, // always fresh — no stale URL caching
       }
     );
     if (!res.ok) return [];
