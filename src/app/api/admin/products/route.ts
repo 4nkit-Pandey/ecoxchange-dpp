@@ -84,3 +84,30 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ success: true });
 }
 
+// DELETE /api/admin/products — Delete a product permanently
+export async function DELETE(request: Request) {
+  const session = await auth();
+  if (!session?.user || !(session.user as { isAdmin?: boolean }).isAdmin) {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
+
+  try {
+    const { productId } = await request.json();
+    if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+
+    // Manually cascade delete all relations
+    await prisma.$transaction([
+      prisma.ownershipHistory.deleteMany({ where: { productId } }),
+      prisma.repairLog.deleteMany({ where: { productId } }),
+      prisma.productDocument.deleteMany({ where: { productId } }),
+      prisma.marketplaceListing.deleteMany({ where: { productId } }),
+      prisma.transferRequest.deleteMany({ where: { productId } }),
+      prisma.adminAction.deleteMany({ where: { productId } }),
+      prisma.product.delete({ where: { id: productId } }),
+    ]);
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
