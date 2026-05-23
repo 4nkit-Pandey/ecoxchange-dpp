@@ -10,15 +10,28 @@ const client = new Client({
 async function main() {
   await client.connect();
 
-  // Update stored listing URLs in marketplace_listings table
-  const r1 = await client.query(`
-    UPDATE marketplace_listings 
-    SET external_url = REPLACE(external_url, 'campuskartt1.netlify.app', 'campuskartt-newacc.vercel.app')
-    WHERE external_url LIKE '%campuskartt1.netlify.app%'
-    RETURNING id, external_url
+  // First, check what columns exist in marketplace_listings
+  const cols = await client.query(`
+    SELECT column_name FROM information_schema.columns 
+    WHERE table_name = 'marketplace_listings' AND table_schema = 'public'
+    ORDER BY column_name
   `);
-  console.log(`Updated ${r1.rows.length} marketplace_listings rows`);
-  r1.rows.forEach(r => console.log(' -', r.external_url));
+  console.log('Columns:', cols.rows.map(r => r.column_name).join(', '));
+
+  // Check current externalUrl values
+  const rows = await client.query(`SELECT id, "externalUrl" FROM marketplace_listings WHERE "externalUrl" LIKE '%netlify%' LIMIT 5`);
+  console.log('\nRows with netlify URL:', rows.rows.length);
+  rows.rows.forEach(r => console.log(' -', r.id, r.externalUrl));
+
+  // Fix them
+  if (rows.rows.length > 0) {
+    const fix = await client.query(`
+      UPDATE marketplace_listings 
+      SET "externalUrl" = REPLACE("externalUrl", 'campuskartt1.netlify.app', 'campuskartt-newacc.vercel.app')
+      WHERE "externalUrl" LIKE '%campuskartt1.netlify.app%'
+    `);
+    console.log('\nFixed', fix.rowCount, 'rows');
+  }
 
   await client.end();
 }
