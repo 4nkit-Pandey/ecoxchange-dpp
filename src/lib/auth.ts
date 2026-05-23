@@ -6,6 +6,7 @@ import { compare, hash } from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET ?? "ecoxchange-dpp-secret-key-cjinnwjtxlxyhrbkutz-2024",
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   session: { strategy: "jwt" },
   pages: {
