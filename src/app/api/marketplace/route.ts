@@ -2,6 +2,77 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
+// ── CampusKartt Supabase (anon key — public data only, active listings) ────
+const CK_URL     = "https://edzicxebgtiosahshvgi.supabase.co";
+const CK_ANON    = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkemljeGViZ3Rpb3NhaHNodmdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDIxMzIsImV4cCI6MjA5MDYxODEzMn0._gV35IiY97ufGvHMGDEZHiT0zISIaugK8tk90IJiJDE";
+
+const CK_CONDITION_SCORE: Record<string, number> = {
+  like_new: 95, good: 75, fair: 55, old: 30,
+};
+const CK_CATEGORY_MAP: Record<string, string> = {
+  textbooks: "ACADEMIC_EQUIPMENT", drafter: "ACADEMIC_EQUIPMENT",
+  bicycle: "CYCLE", chair: "APPLIANCE", lamp: "APPLIANCE",
+  calculator: "ACADEMIC_EQUIPMENT", drawer: "APPLIANCE",
+  electronics: "LAPTOP", sports: "OTHER",
+};
+
+async function fetchCampusKarttListings() {
+  try {
+    const res = await fetch(
+      `${CK_URL}/rest/v1/listings?select=*,users(full_name,university)&status=eq.active&order=created_at.desc&limit=20`,
+      {
+        headers: {
+          apikey: CK_ANON,
+          Authorization: `Bearer ${CK_ANON}`,
+          "Content-Type": "application/json",
+        },
+        next: { revalidate: 60 }, // cache 60 s to avoid rate limits
+      }
+    );
+    if (!res.ok) return [];
+    const rows: any[] = await res.json();
+
+    return rows.map((row) => {
+      const condScore = CK_CONDITION_SCORE[row.condition] ?? 60;
+      const trustScore = Math.max(
+        30,
+        Math.round(condScore * 0.5 + (row.reuse_count ?? 0) * 5)
+      );
+
+      return {
+        id:           `ck-${row.id}`,
+        askingPrice:  Number(row.price),
+        description:  row.description ?? null,
+        createdAt:    row.created_at,
+        source:       "CAMPUSKARTT",
+        externalId:   String(row.id),
+        externalUrl:  `https://campuskartt1.netlify.app/app/listing.html?id=${row.id}`,
+        externalImage: row.photo_url ?? null,
+        sellerLabel:  row.users?.full_name ?? "CampusKartt Seller",
+        externalTrustScore: trustScore,
+        product: {
+          dppId:      `CK-${row.id}`,
+          category:   CK_CATEGORY_MAP[row.category] ?? "OTHER",
+          brand:      "CampusKartt",
+          model:      row.title,
+          conditionScore: condScore,
+          trustScore,
+          isVerified: false,
+          ownershipHistory: Array.from({ length: Math.max(1, row.reuse_count ?? 0) }, (_, i) => ({ id: String(i) })),
+          repairLogs: [],
+        },
+        seller: {
+          name:       row.users?.full_name ?? "CampusKartt Seller",
+          college:    row.users?.university ?? row.university ?? "Campus",
+          trustScore,
+        },
+      };
+    });
+  } catch {
+    return []; // non-fatal — marketplace still shows EcoXchange listings
+  }
+}
+
 // GET /api/marketplace — Public marketplace feed
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,7 +93,7 @@ export async function GET(request: Request) {
     };
   }
 
-  const [listings, total] = await Promise.all([
+  const [listings, total, campusKarttListings] = await Promise.all([
     prisma.marketplaceListing.findMany({
       where,
       include: {
@@ -47,9 +118,11 @@ export async function GET(request: Request) {
       skip: (page - 1) * limit,
     }),
     prisma.marketplaceListing.count({ where }),
+    // Fetch live CampusKartt listings on every request (cached 60s)
+    fetchCampusKarttListings(),
   ]);
 
-  // Increment view count for returned listings (fire-and-forget)
+  // Increment view count (fire-and-forget)
   Promise.all(
     listings.map((l) =>
       prisma.marketplaceListing.update({
@@ -59,10 +132,10 @@ export async function GET(request: Request) {
     )
   ).catch(() => {});
 
-  // Normalize listings — merge CampusKartt external fields into response
-  const normalizedListings = listings.map((l) => ({
+  // Normalise EcoXchange listings
+  const normalizedEco = listings.map((l) => ({
     ...l,
-    // For CampusKartt listings: override seller display
+    source: l.source ?? "ECOXCHANGE",
     seller: l.seller ?? {
       name: l.sellerLabel ?? "CampusKartt",
       college: "Campus Kartt",
@@ -70,16 +143,27 @@ export async function GET(request: Request) {
     },
   }));
 
+  // Filter CampusKartt listings by category if a filter is active
+  const filteredCK = category && category !== "ALL"
+    ? campusKarttListings.filter(
+        (l) => l.product.category === category
+      )
+    : campusKarttListings;
+
+  // Merge: EcoXchange first, then CampusKartt
+  const allListings = [...normalizedEco, ...filteredCK];
+
   return NextResponse.json({
-    listings: normalizedListings,
+    listings: allListings,
     pagination: {
       page,
       limit,
-      total,
-      pages: Math.ceil(total / limit),
+      total: total + filteredCK.length,
+      pages: Math.ceil((total + filteredCK.length) / limit),
     },
   });
 }
+
 
 
 // POST /api/marketplace — Create a new listing
