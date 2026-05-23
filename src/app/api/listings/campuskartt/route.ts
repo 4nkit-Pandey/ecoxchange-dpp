@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         condition:          condition || "good",
         source:             "CAMPUSKARTT",
         externalId:         String(externalId),
-        externalUrl:        externalUrl || `https://campuskartt-newacc.vercel.app/app/listing.html?id=${externalId}`,
+        externalUrl:        externalUrl || `https://www.campuskartt.in/app/listing.html?id=${externalId}`,
         externalImage:      imageUrl || null,
         sellerLabel:        "CampusKartt",
         externalTrustScore: trustScore,

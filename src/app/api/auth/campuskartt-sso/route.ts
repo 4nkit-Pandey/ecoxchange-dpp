@@ -87,7 +87,7 @@ async function generateSessionViaMagicLink(email: string): Promise<{ access_toke
   // Step B: Exchange the token for a session
   // /auth/v1/verify redirects with access_token + refresh_token in the Location hash
   const verifyRes = await fetch(
-    `${CK_SUPABASE_URL}/auth/v1/verify?token=${encodeURIComponent(token)}&type=magiclink&redirect_to=https://campuskartt-newacc.vercel.app`,
+    `${CK_SUPABASE_URL}/auth/v1/verify?token=${encodeURIComponent(token)}&type=magiclink&redirect_to=https://www.campuskartt.in`,
     { redirect: "manual" }
   );
 
