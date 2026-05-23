@@ -248,22 +248,68 @@ export default function DashboardPage() {
 }
 
 function SellButton({ dppId }: { dppId: string }) {
-  const CAMPUSKARTT_URL = process.env.NEXT_PUBLIC_CAMPUSKARTT_URL ?? "https://campuskartt1.netlify.app";
+  const [loading, setLoading] = useState(false);
+  const CAMPUSKARTT_URL =
+    process.env.NEXT_PUBLIC_CAMPUSKARTT_URL ?? "https://campuskartt1.netlify.app";
 
-  const handleSell = () => {
-    const sellUrl = `${CAMPUSKARTT_URL}/app/post.html?source=ecoxchange&dppId=${encodeURIComponent(dppId)}`;
-    window.open(sellUrl, "_blank", "noopener,noreferrer");
+  const handleSell = async () => {
+    setLoading(true);
+    try {
+      // Get a CampusKartt session for the current EcoXchange user (SSO)
+      const res = await fetch("/api/auth/campuskartt-sso", { method: "POST" });
+      const data = await res.json();
+
+      let sellUrl = `${CAMPUSKARTT_URL}/app/post.html`;
+
+      if (data.accessToken) {
+        // Pass session tokens in URL hash (never sent to server — browser only)
+        // CampusKartt will call supabaseClient.auth.setSession() to auto-login
+        const hash = [
+          `eco_access_token=${encodeURIComponent(data.accessToken)}`,
+          `eco_refresh_token=${encodeURIComponent(data.refreshToken)}`,
+          `source=ecoxchange`,
+          `dppId=${encodeURIComponent(dppId)}`,
+        ].join("&");
+        sellUrl += `?source=ecoxchange&dppId=${encodeURIComponent(dppId)}#${hash}`;
+      } else {
+        // SSO failed (e.g. email confirmation required) — open CampusKartt login page
+        // with return URL so they come back to post after logging in
+        const returnUrl = encodeURIComponent(
+          `${CAMPUSKARTT_URL}/app/post.html?source=ecoxchange&dppId=${encodeURIComponent(dppId)}`
+        );
+        sellUrl = `${CAMPUSKARTT_URL}/app/login.html?returnUrl=${returnUrl}`;
+      }
+
+      window.open(sellUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      // Network error — just open CampusKartt sell page normally
+      window.open(
+        `${CAMPUSKARTT_URL}/app/post.html?source=ecoxchange`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <button
       onClick={handleSell}
-      className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400 hover:bg-orange-500/12 hover:border-orange-500/25 transition-all"
+      disabled={loading}
+      className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400 hover:bg-orange-500/12 hover:border-orange-500/25 transition-all disabled:opacity-60"
     >
-      <ShoppingBag className="w-3 h-3" />
-      Sell
-      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+      {loading ? (
+        <Loader2 className="w-3 h-3 animate-spin" />
+      ) : (
+        <>
+          <ShoppingBag className="w-3 h-3" />
+          Sell
+          <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+        </>
+      )}
     </button>
   );
 }
+
 
