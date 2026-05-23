@@ -19,7 +19,6 @@ import {
   TrendingUp,
   Clock,
   Database,
-  Trash2,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { formatDate, formatCurrency, getCategoryIcon } from "@/lib/utils";
@@ -142,21 +141,6 @@ export default function AdminDashboardPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId, action }),
-      });
-      await fetchData();
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleDeleteProduct(productId: string) {
-    if (!confirm("Are you sure you want to permanently delete this product and all its history?")) return;
-    setActionLoading(productId);
-    try {
-      await fetch("/api/admin/products", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
       });
       await fetchData();
     } finally {
@@ -472,18 +456,6 @@ export default function AdminDashboardPage() {
                                   Unflag
                                 </button>
                               )}
-                              <button
-                                onClick={() => handleDeleteProduct(product.id)}
-                                disabled={actionLoading === product.id}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] hover:bg-red-500/20 transition-all ml-1"
-                                title="Delete Product"
-                              >
-                                {actionLoading === product.id ? (
-                                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                )}
-                              </button>
                             </div>
                           </td>
                         </tr>
