@@ -46,6 +46,11 @@ enum ListingStatus {
   EXPIRED
 }
 
+enum ListingSource {
+  ECOXCHANGE
+  CAMPUSKARTT
+}
+
 enum TransferStatus {
   PENDING
   CONFIRMED
@@ -273,7 +278,7 @@ model ProductDocument {
 model MarketplaceListing {
   id             String        @id @default(cuid())
   productId      String
-  sellerId       String
+  sellerId       String?
   askingPrice    Float
   originalPrice  Float?
   description    String?       @db.Text
@@ -285,8 +290,16 @@ model MarketplaceListing {
   expiresAt      DateTime?
   soldAt         DateTime?
 
-  product  Product @relation(fields: [productId], references: [id])
-  seller   User    @relation("SellerListings", fields: [sellerId], references: [id])
+  // CampusKartt integration fields
+  source              ListingSource @default(ECOXCHANGE)
+  externalId          String?       // CampusKartt listing ID
+  externalUrl         String?       // Link to CampusKartt listing page
+  externalImage       String?       // Cloudinary image URL from CampusKartt
+  sellerLabel         String?       // "CampusKartt" for external listings
+  externalTrustScore  Float?        // Computed trust score for external listings
+
+  product  Product  @relation(fields: [productId], references: [id])
+  seller   User?    @relation("SellerListings", fields: [sellerId], references: [id])
   transfer TransferRequest?
 
   @@index([listingStatus])

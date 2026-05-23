@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Search,
   Filter,
@@ -11,6 +10,7 @@ import {
   Clock,
   Loader2,
   Package,
+  ExternalLink,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import {
@@ -24,6 +24,11 @@ interface Listing {
   askingPrice: number;
   description?: string;
   createdAt: string;
+  source?: string;
+  externalUrl?: string;
+  externalImage?: string;
+  sellerLabel?: string;
+  externalTrustScore?: number;
   product: {
     dppId: string;
     category: string;
@@ -88,7 +93,8 @@ export default function MarketplacePage() {
         (l) =>
           l.product.brand?.toLowerCase().includes(search.toLowerCase()) ||
           l.product.model?.toLowerCase().includes(search.toLowerCase()) ||
-          l.product.dppId.toLowerCase().includes(search.toLowerCase())
+          l.product.dppId.toLowerCase().includes(search.toLowerCase()) ||
+          l.sellerLabel?.toLowerCase().includes(search.toLowerCase())
       )
     : listings;
 
@@ -162,9 +168,110 @@ export default function MarketplacePage() {
             <div className="mono-tag mb-4">{filtered.length} verified listings</div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map((listing) => {
+                const isCampusKartt = listing.source === "CAMPUSKARTT";
                 const conditionInfo = getConditionLabel(listing.product.conditionScore);
+                const displayTrustScore = isCampusKartt
+                  ? (listing.externalTrustScore ?? 70)
+                  : Math.round(listing.product.trustScore);
+
+                if (isCampusKartt) {
+                  // CampusKartt card — opens external URL
+                  return (
+                    <a
+                      key={listing.id}
+                      href={listing.externalUrl ?? "https://campuskartt1.netlify.app/app/browse.html"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group block bg-[#0f0f0f] border border-orange-500/20 rounded-2xl p-5 card-hover relative overflow-hidden"
+                    >
+                      {/* CampusKartt gradient accent */}
+                      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500 opacity-60" />
+
+                      {/* Product image */}
+                      {listing.externalImage && (
+                        <div className="w-full h-28 rounded-xl overflow-hidden mb-3 bg-[#141414]">
+                          <img
+                            src={listing.externalImage}
+                            alt={listing.product.model}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-2xl">
+                          {getCategoryIcon(listing.product.category)}
+                        </span>
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/12 border border-orange-500/25">
+                          <span className="text-[9px] text-orange-400 font-bold tracking-wide">CampusKartt</span>
+                        </div>
+                      </div>
+
+                      {/* Product name */}
+                      <div className="mb-3">
+                        <h3 className="text-[14px] font-semibold text-white leading-tight mb-0.5">
+                          {listing.product.model}
+                        </h3>
+                        <div className="font-mono text-[10px] text-zinc-600">
+                          via CampusKartt
+                        </div>
+                      </div>
+
+                      {/* Metrics */}
+                      <div className="grid grid-cols-3 gap-1.5 mb-3">
+                        <div className="bg-[#141414] rounded-lg p-2 text-center">
+                          <div className="text-xs font-semibold text-orange-400">
+                            {displayTrustScore}
+                          </div>
+                          <div className="text-[9px] text-zinc-600">Trust</div>
+                        </div>
+                        <div className="bg-[#141414] rounded-lg p-2 text-center">
+                          <div className={`text-[10px] font-semibold ${conditionInfo.color}`}>
+                            {conditionInfo.label}
+                          </div>
+                          <div className="text-[9px] text-zinc-600">Condition</div>
+                        </div>
+                        <div className="bg-[#141414] rounded-lg p-2 text-center">
+                          <div className="text-xs font-semibold text-zinc-400">—</div>
+                          <div className="text-[9px] text-zinc-600">Campus</div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      {listing.description && (
+                        <div className="text-[10px] text-zinc-500 mb-3 line-clamp-2">
+                          {listing.description}
+                        </div>
+                      )}
+
+                      {/* Price + CTA */}
+                      <div className="flex items-center justify-between pt-3 border-t border-orange-500/10">
+                        <div>
+                          <div className="text-lg font-bold text-white">
+                            {formatCurrency(listing.askingPrice)}
+                          </div>
+                          <div className="text-[10px] text-zinc-600">
+                            CampusKartt · Campus sell
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[11px] font-medium group-hover:bg-orange-500/15 transition-all">
+                          Buy →
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-1 text-[10px] text-zinc-700">
+                        <Clock className="w-2.5 h-2.5" />
+                        {new Date(listing.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
+                      </div>
+                    </a>
+                  );
+                }
+
+                // Standard EcoXchange card
                 return (
-                  <Link
+                  <a
                     key={listing.id}
                     href={`/passport/${listing.product.dppId}`}
                     className="group block bg-[#0f0f0f] border border-[#1f1f1f] rounded-2xl p-5 card-hover"
@@ -198,7 +305,7 @@ export default function MarketplacePage() {
                     <div className="grid grid-cols-3 gap-1.5 mb-3">
                       <div className="bg-[#141414] rounded-lg p-2 text-center">
                         <div className="text-xs font-semibold text-white">
-                          {Math.round(listing.product.trustScore)}
+                          {displayTrustScore}
                         </div>
                         <div className="text-[9px] text-zinc-600">Trust</div>
                       </div>
@@ -248,7 +355,7 @@ export default function MarketplacePage() {
                       <Clock className="w-2.5 h-2.5" />
                       {new Date(listing.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
                     </div>
-                  </Link>
+                  </a>
                 );
               })}
             </div>

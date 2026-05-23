@@ -59,8 +59,19 @@ export async function GET(request: Request) {
     )
   ).catch(() => {});
 
+  // Normalize listings — merge CampusKartt external fields into response
+  const normalizedListings = listings.map((l) => ({
+    ...l,
+    // For CampusKartt listings: override seller display
+    seller: l.seller ?? {
+      name: l.sellerLabel ?? "CampusKartt",
+      college: "Campus Kartt",
+      trustScore: l.externalTrustScore ?? 70,
+    },
+  }));
+
   return NextResponse.json({
-    listings,
+    listings: normalizedListings,
     pagination: {
       page,
       limit,
@@ -69,6 +80,7 @@ export async function GET(request: Request) {
     },
   });
 }
+
 
 // POST /api/marketplace — Create a new listing
 export async function POST(request: Request) {

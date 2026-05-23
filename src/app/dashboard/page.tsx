@@ -10,12 +10,13 @@ import {
   ShoppingBag,
   Clock,
   Plus,
-  ArrowRight,
   Star,
   Wrench,
   Shield,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
+
 import { Navbar } from "@/components/layout/navbar";
 import {
   formatDate,
@@ -247,57 +248,22 @@ export default function DashboardPage() {
 }
 
 function SellButton({ dppId }: { dppId: string }) {
-  const [showForm, setShowForm] = useState(false);
-  const [price, setPrice] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const CAMPUSKARTT_URL = process.env.NEXT_PUBLIC_CAMPUSKARTT_URL ?? "https://campuskartt1.netlify.app";
 
-  const handleList = async () => {
-    if (!price) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/marketplace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dppId, askingPrice: price }),
-      });
-      if (res.ok) {
-        router.refresh();
-        setShowForm(false);
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleSell = () => {
+    const sellUrl = `${CAMPUSKARTT_URL}/app/post.html?source=ecoxchange&dppId=${encodeURIComponent(dppId)}`;
+    window.open(sellUrl, "_blank", "noopener,noreferrer");
   };
 
-  if (!showForm) {
-    return (
-      <button
-        onClick={() => setShowForm(true)}
-        className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-blue-500/8 border border-blue-500/15 text-xs text-blue-400 hover:bg-blue-500/12 transition-all"
-      >
-        <ShoppingBag className="w-3 h-3" />
-        Sell
-      </button>
-    );
-  }
-
   return (
-    <div className="flex-1 flex gap-1">
-      <input
-        type="number"
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
-        placeholder="₹ Price"
-        className="flex-1 py-2 px-2 rounded-lg bg-[#141414] border border-blue-500/20 text-xs text-white placeholder-zinc-600 outline-none focus:border-blue-500/40"
-      />
-      <button
-        onClick={handleList}
-        disabled={loading}
-        className="py-2 px-2 rounded-lg bg-blue-500 text-white text-xs font-medium"
-      >
-        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-      </button>
-    </div>
+    <button
+      onClick={handleSell}
+      className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400 hover:bg-orange-500/12 hover:border-orange-500/25 transition-all"
+    >
+      <ShoppingBag className="w-3 h-3" />
+      Sell
+      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+    </button>
   );
 }
+
